@@ -44,6 +44,26 @@ button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .summary-change{font-size:13px;font-weight:700;white-space:nowrap}
 .summary-change.up{color:var(--up)}
 .summary-change.down{color:var(--down)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.history-card .tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;flex-wrap:nowrap}
+.history-card .tabs button{text-align:center;min-width:0;padding:7px 3px;font-size:12px;white-space:nowrap}
+.tabs button{border:1px solid var(--line);background:#f5f7f9;border-radius:8px;padding:7px 16px;min-height:36px;color:var(--mute);font-size:14px;font-weight:600;line-height:1.2}
+.tabs button.on{background:#1f2b3d;color:#fff;border-color:#1f2b3d;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.history-card{padding:18px 18px 14px}
+.history-heading{margin-bottom:12px}
+.history-heading h2{font-size:28px;line-height:1.2;letter-spacing:-.03em;margin:0}
+.history-table-wrap{margin-top:12px;overflow:auto;border:1px solid #e7eaee;border-radius:12px;background:#fff}
+.history-table{width:100%;table-layout:fixed;border-collapse:collapse;background:#fff}
+.history-table th,.history-table td{padding:11px 12px;border-bottom:1px solid #edf0f3;text-align:left;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-table th{background:#fff;color:#5f6d7b;font-weight:700}
+.history-table td:nth-child(2),.history-table th:nth-child(2){text-align:center}
+.history-table .portfolio-value{font-variant-numeric:tabular-nums}
+.history-table td:last-child,.history-table th:last-child{text-align:right}
+.history-table tbody tr:last-child td{border-bottom:none}
+.history-diff{font-weight:700;letter-spacing:-.01em;text-align:right}
+.history-diff.up{color:#0f8a5f}
+.history-diff.down{color:#d64b45}
+.history-diff.neutral{color:#5f6d7b}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px}
 .grid>.card>.metal-title{margin-bottom:12px}
 .utility-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"convert sip-calculator history" "ratio sip-calculator history";gap:16px;margin-top:16px;align-items:stretch}
@@ -281,7 +301,15 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
     <div class="history-heading"><h2>Price History</h2></div>
     <div class="tabs" style="margin-top:8px" id="metalTabs" role="group" aria-label="Select price history metal"></div>
     <div class="muted history-note" id="histNote" aria-live="polite" hidden></div>
-    <div class="chartbox" id="historyChartBox" hidden><canvas id="hist"></canvas></div>
+    <div class="history-table-wrap" id="historyTableWrap" hidden>
+      <table class="history-table" id="historyTable">
+        <colgroup id="historyColGroup"></colgroup>
+        <thead>
+          <tr id="historyHeadRow"></tr>
+        </thead>
+        <tbody id="historyTableBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -305,7 +333,7 @@ const LEGACY_SAMPLE_SIPS = [{ m: '2026-09', amt: 1000 }, { m: '2026-10', amt: 11
 let historyCache = [];
 const metalPurchases = { gold: [], silver: [] };
 const openingBalances = { gold: { grams: 0, invested: 0 }, silver: { grams: 0, invested: 0 } };
-let metalSel = 'gold';
+let metalSel = 'g24';
 let converterMetal = 'g';
 let converterMode = 'amount';
 let storageNotice = '';
@@ -341,7 +369,7 @@ function restorePortfolio() {
         !Array.isArray(saved.history)) {
       throw new Error('Saved portfolio data has an invalid format.');
     }
-    metalSel = saved.metalSel === 'g24' || saved.metalSel === 'g22' ? 'gold' : saved.metalSel;
+    metalSel = saved.metalSel === 'gold' ? 'g24' : saved.metalSel;
     const restoredSips = saved.sips.filter(entry =>
       saved.version >= 3 || !LEGACY_SAMPLE_SIPS.some(starter => starter.m === entry.m && starter.amt === entry.amt)
     );
@@ -793,8 +821,7 @@ function calculateSip() {
     : 'For illustration only. Actual returns may vary.';
 }
 
-/* ===== HISTORY CHART ===== */
-let hist;
+/* ===== HISTORY TABLE ===== */
 function getHistory() {
   const sourceHistory = rates ? rates.hist : historyCache;
   if (!sourceHistory.length) return null;
@@ -814,49 +841,67 @@ function getHistory() {
     };
   });
 }
-const COLORS = { g24: '#c28e0e', g22: '#e0b24a', s: '#7d8799', p: '#1f7a6d' };
+function getHistoryTableConfig() {
+  const columnWidths = [33.333, 33.333, 33.334];
+  const rateColumn = {
+    g24: { label: 'Gold 24K', valueKey: 'gold24' },
+    g22: { label: 'Gold 22K', valueKey: 'gold22' },
+    s: { label: 'Silver', valueKey: 'silver' },
+    p: { label: 'Portfolio', valueKey: 'portfolio' }
+  }[metalSel];
+  return {
+    columns: [
+      { key: 'x', label: 'Date' },
+      { key: rateColumn.valueKey, label: rateColumn.label, type: 'currency' },
+      { key: 'diff', label: 'Change', type: 'diff' }
+    ],
+    valueKey: rateColumn.valueKey,
+    columnWidths
+  };
+}
 function drawHistory() {
   const data = getHistory();
-  if (hist) hist.destroy();
   if (!data || !data.length) {
-    $('historyChartBox').hidden = true;
+    $('historyTableWrap').hidden = true;
     $('histNote').hidden = false;
     $('histNote').textContent = rateLoadState === 'loading'
       ? 'Loading…'
       : 'Price history unavailable.';
     return;
   }
-  $('historyChartBox').hidden = false;
+  const config = getHistoryTableConfig();
+  $('historyColGroup').innerHTML = config.columnWidths.map(width => `<col style="width:${width}%">`).join('');
+  $('historyHeadRow').innerHTML = config.columns.map(column => `<th>${column.label}</th>`).join('');
+  const rows = data.slice().sort((a, b) => a.date.localeCompare(b.date));
+  $('historyTableBody').innerHTML = rows.map((row, index) => {
+    const previous = index > 0 ? rows[index - 1] : null;
+    const diffValue = previous ? row[config.valueKey] - previous[config.valueKey] : null;
+    const diffClass = diffValue === null ? 'neutral' : diffValue > 0 ? 'up' : diffValue < 0 ? 'down' : 'neutral';
+    const diffText = diffValue === null
+      ? '—'
+      : diffValue === 0
+        ? '0'
+        : `${diffValue > 0 ? '+' : '-'}${Math.abs(diffValue).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+    const primaryValue = row[config.valueKey];
+    const cells = [
+      `<td>${row.x}</td>`,
+      `<td class="${metalSel === 'p' ? 'portfolio-value' : ''}">₹ ${primaryValue.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>`,
+      `<td class="history-diff ${diffClass}">${diffText}</td>`
+    ];
+    return `<tr>${cells.join('')}</tr>`;
+  }).join('');
+  $('historyTableWrap').hidden = false;
   $('histNote').hidden = true;
-  const series = metalSel === 'gold'
-    ? [['Gold 24K', 'gold24', COLORS.g24], ['Gold 22K', 'gold22', COLORS.g22]]
-    : [[metalSel === 's' ? 'Silver' : 'Portfolio', metalSel === 's' ? 'silver' : 'portfolio', COLORS[metalSel === 's' ? 's' : 'p']]];
-  hist = new Chart($('hist'), {
-    type: 'line',
-    data: {
-      labels: data.map(d => d.x),
-      datasets: series.map(([label, key, color]) => ({
-        label,
-        data: data.map(d => d[key]),
-        borderColor: color,
-        backgroundColor: color + '22',
-        fill: false,
-        tension: .3,
-        pointRadius: 3,
-        borderWidth: 2
-      }))
-    },
-    options: { maintainAspectRatio: false, plugins: { legend: { display: metalSel === 'gold' } }, scales: { x: { grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 8 } }, y: { ticks: { callback: v => '₹' + v.toLocaleString('en-IN') } } } }
-  });
 }
+
 function tabs(el, items, get, set) {
   $(el).innerHTML = items.map(([k, l]) => `<button class="${get() === k ? 'on' : ''}" data-k="${k}" aria-pressed="${get() === k}">${l}</button>`).join('');
   $(el).onclick = e => { const k = e.target.dataset.k; if (!k) return; set(isNaN(k) ? k : +k); savePortfolio(); tabs(el, items, get, set); drawHistory(); };
 }
 
 /* ===== INIT ===== */
-tabs('metalTabs', [['gold', 'Gold'], ['s', 'Silver'], ['p', 'Portfolio']], () => metalSel, v => metalSel = v);
 restorePortfolio();
+tabs('metalTabs', [['g24', 'Gold 24K'], ['g22', 'Gold 22K'], ['s', 'Silver'], ['p', 'Portfolio']], () => metalSel, v => metalSel = v);
 const currentMonth = new Date();
 const defaultPurchaseMonth = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`;
 ['gPurchaseMonth', 'sPurchaseMonth'].forEach(id => { $(id).value = defaultPurchaseMonth; });
