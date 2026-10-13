@@ -872,9 +872,9 @@ function drawHistory() {
   const config = getHistoryTableConfig();
   $('historyColGroup').innerHTML = config.columnWidths.map(width => `<col style="width:${width}%">`).join('');
   $('historyHeadRow').innerHTML = config.columns.map(column => `<th>${column.label}</th>`).join('');
-  const rows = data.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const rows = data.slice().sort((a, b) => b.date.localeCompare(a.date));
   $('historyTableBody').innerHTML = rows.map((row, index) => {
-    const previous = index > 0 ? rows[index - 1] : null;
+    const previous = index < rows.length - 1 ? rows[index + 1] : null;
     const diffValue = previous ? row[config.valueKey] - previous[config.valueKey] : null;
     const diffClass = diffValue === null ? 'neutral' : diffValue > 0 ? 'up' : diffValue < 0 ? 'down' : 'neutral';
     const diffText = diffValue === null
