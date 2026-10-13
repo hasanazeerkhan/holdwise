@@ -1,5 +1,5 @@
 {
-  "name": "portfoliotrackerbyhasan",
+  "name": "holdwise",
   "version": "1.0.0",
   "scripts": {
     "check": "node --check netlify/functions/rates.js"

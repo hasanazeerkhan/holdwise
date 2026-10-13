@@ -1,17 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-IN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="favicon.png">
-<title>Portfolio Tracker · Gold, Silver & SIP</title>
+<meta name="description" content="Track your gold, silver and SIP investments in one place. See rates in ₹, convert amounts to grams, and estimate SIP returns.">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Hasan">
+<link rel="canonical" href="https://holdwise.netlify.app/">
+<meta property="og:title" content="Holdwise · Gold, Silver & SIP Tracker">
+<meta property="og:description" content="Track your gold, silver and SIP investments in one place. See rates in ₹, convert amounts to grams, and estimate SIP returns.">
+<meta property="og:site_name" content="Holdwise">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://holdwise.netlify.app/">
+<meta property="og:image" content="https://holdwise.netlify.app/og-image.png">
+<meta property="og:image:alt" content="Holdwise — Gold, Silver &amp; SIP Tracker">
+<meta property="og:locale" content="en_IN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Holdwise · Gold, Silver & SIP Tracker">
+<meta name="twitter:description" content="Track your gold, silver and SIP investments in one place. See rates in ₹, convert amounts to grams, and estimate SIP returns.">
+<meta name="twitter:image" content="https://holdwise.netlify.app/og-image.png">
+<meta name="theme-color" content="#0E2A2B">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>Holdwise · Gold, Silver & SIP Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Holdwise",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "en-IN",
+      "offers": {
+        "@type": "Offer",
+        "price": 0,
+        "priceCurrency": "INR"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Hasan",
+        "url": "https://www.linkedin.com/in/hasanazeerkhan/"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How does the SIP calculator work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Enter an investment amount, an expected annual return, and a time period to see an illustrative future-value estimate for a monthly SIP or a one-time investment. Actual returns may vary."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where do the gold and silver rates come from?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "When live data is available, the app fetches gold and silver rates for Trichy from Goodreturns through its Netlify function. If the live request fails, the function can return fallback rates instead."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where is my portfolio data stored?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Portfolio holdings and preferences are saved in this browser's local storage. The app sends rate requests to its Netlify function; it does not send saved portfolio data with those requests."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 <style>
-:root{--bg:#eef1f4;--card:#fff;--ink:#14213d;--mute:#667085;--line:#dde2e8;--gold:#c28e0e;--silver:#7d8799;--sip:#1f7a6d;--up:#15803d;--down:#b42318}
+:root{--bg:#eef1f4;--card:#fff;--ink:#14213d;--mute:#586273;--line:#dde2e8;--gold:#c28e0e;--gold-text:#806000;--silver:#7d8799;--silver-text:#5d697a;--sip:#1f7a6d;--up:#15803d;--down:#b42318}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 'DM Sans',system-ui,sans-serif}
 h1,h2,.big{font-family:'Bricolage Grotesque',sans-serif;margin:0}
+.site-descriptor{display:block;margin-top:2px;font:500 14px/1.3 'DM Sans',system-ui,sans-serif}
+.intro{margin:18px 0;color:var(--ink);max-width:75ch}
+.intro p{margin:0}
+.faq{margin-top:16px}
+.faq-list{display:grid;gap:14px;margin-top:12px}
+.faq-item h3{margin:0 0 4px;font-size:15px}
+.faq-item p{margin:0;color:var(--mute);font-size:14px}
 .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .status{font-size:13px;color:var(--mute)}
@@ -61,8 +144,8 @@ button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .history-table td:last-child,.history-table th:last-child{text-align:right}
 .history-table tbody tr:last-child td{border-bottom:none}
 .history-diff{font-weight:700;letter-spacing:-.01em;text-align:right}
-.history-diff.up{color:#0f8a5f}
-.history-diff.down{color:#d64b45}
+.history-diff.up{color:var(--up)}
+.history-diff.down{color:var(--down)}
 .history-diff.neutral{color:#5f6d7b}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px}
 .grid>.card>.metal-title{margin-bottom:12px}
@@ -179,14 +262,16 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
 <body>
 <div class="wrap">
 
-<div class="top">
-  <h1 style="font-size:24px">Portfolio Tracker <span class="tag">Trichy, TN</span></h1>
+<header class="top">
+  <h1 style="font-size:24px">Holdwise <span class="site-descriptor">Gold, Silver &amp; SIP Tracker</span></h1>
   <div class="status"><span class="dot off" id="dot"></span><span class="status-full" id="statusTxt">Loading rates…</span><span class="status-short" id="statusShort" aria-hidden="true">Loading</span><button id="retry" onclick="loadRates()" aria-label="Refresh rates" title="Refresh rates"><span class="refresh-label">Refresh</span><span class="refresh-icon" aria-hidden="true">↻</span></button></div>
-</div>
+ </header>
+<main>
+<noscript><p class="banner" style="display:block">JavaScript is required to load live gold and silver rates and use the portfolio tools.</p></noscript>
 <div class="banner" id="banner"></div>
 
 <!-- NET WORTH -->
-<section class="hero" id="portfolioSummary">
+<section class="hero" id="portfolioSummary" aria-label="Portfolio summary">
   <div>
     <div class="muted">Net Worth</div>
     <div class="big" id="net">₹ 0</div>
@@ -204,11 +289,14 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
     <div class="summary-rate"><span>Silver rate</span><div class="summary-rate-value"><strong><b id="summarySilver">₹ --</b> <small>/g</small></strong><span class="summary-change" id="summarySilverChange" aria-label="Change from previous recorded date">--</span></div></div>
   </div>
 </section>
+<section class="intro" aria-label="About Holdwise">
+  <p>Holdwise is a gold, silver and SIP portfolio tracker for recording holdings and checking Trichy metal rates. Use the converter to estimate weight from an amount, or the SIP calculator to explore illustrative investment returns.</p>
+</section>
 
 <!-- METALS -->
 <div class="grid">
-  <div class="card">
-    <div class="metal-title"><h2 style="color:var(--gold)">Gold</h2><div class="holding-tile gold" aria-label="Gold holdings"><span id="gHoldings">0 g</span></div></div>
+  <section class="card" aria-labelledby="goldHeading">
+    <div class="metal-title"><h2 id="goldHeading" style="color:var(--gold-text)">Gold</h2><div class="holding-tile gold" aria-label="Gold holdings"><span id="gHoldings">0 g</span></div></div>
     <div class="purchase-form">
       <div><label for="gPurchaseMonth">Month</label><input id="gPurchaseMonth" type="month"></div>
       <div><label for="gPurchaseGrams">Grams purchased</label><input id="gPurchaseGrams" type="number" min="0" step="0.01" placeholder="e.g. 10"></div>
@@ -216,10 +304,10 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
     </div>
     <div class="empty-state" id="goldPurchaseEmpty">No purchases yet. Add a month above to start tracking.</div>
     <table class="sec" id="goldPurchaseTable" hidden><thead><tr><th>Month</th><th>Grams purchased</th><th></th></tr></thead><tbody id="goldPurchaseBody"></tbody></table>
-  </div>
+  </section>
 
-  <div class="card">
-    <div class="metal-title"><h2 style="color:var(--silver)">Silver</h2><div class="holding-tile silver" aria-label="Silver holdings"><span id="sHoldings">0 g</span></div></div>
+  <section class="card" aria-labelledby="silverHeading">
+    <div class="metal-title"><h2 id="silverHeading" style="color:var(--silver-text)">Silver</h2><div class="holding-tile silver" aria-label="Silver holdings"><span id="sHoldings">0 g</span></div></div>
     <div class="purchase-form">
       <div><label for="sPurchaseMonth">Month</label><input id="sPurchaseMonth" type="month"></div>
       <div><label for="sPurchaseGrams">Grams purchased</label><input id="sPurchaseGrams" type="number" min="0" step="0.01" placeholder="e.g. 250"></div>
@@ -227,10 +315,10 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
     </div>
     <div class="empty-state" id="silverPurchaseEmpty">No purchases yet. Add a month above to start tracking.</div>
     <table class="sec" id="silverPurchaseTable" hidden><thead><tr><th>Month</th><th>Grams purchased</th><th></th></tr></thead><tbody id="silverPurchaseBody"></tbody></table>
-  </div>
+  </section>
 
-  <div class="card">
-    <div class="metal-title"><h2 style="color:var(--sip)">SIP</h2><div class="holding-tile sip" aria-label="Total SIP contributions"><span id="sipTotal">₹ 0</span></div></div>
+  <section class="card" aria-labelledby="sipHeading">
+    <div class="metal-title"><h2 id="sipHeading" style="color:var(--sip)">SIP</h2><div class="holding-tile sip" aria-label="Total SIP contributions"><span id="sipTotal">₹ 0</span></div></div>
     <div class="purchase-form sip-form">
       <div><label for="fmon">Month</label><input id="fmon" type="month"></div>
       <div><label for="fa">Contribution (₹)</label><input id="fa" type="number" min="0" placeholder="e.g. ₹1000"></div>
@@ -238,12 +326,12 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
     </div>
     <div class="empty-state" id="sipEmpty">No SIP contributions yet. Add a month above to start tracking.</div>
     <table class="sec" id="sipTable" hidden><thead><tr><th>Month</th><th>Contribution</th><th></th></tr></thead><tbody id="sipBody"></tbody></table>
-  </div>
+  </section>
 </div>
 
 <div class="utility-grid">
-  <div class="card convert-card">
-    <div class="convert-header"><h2>Convert</h2></div>
+  <section class="card convert-card" aria-labelledby="convertHeading">
+    <div class="convert-header"><h2 id="convertHeading">Convert</h2></div>
     <div class="convert-options">
       <div class="convert-switch" role="group" aria-label="Choose metal to convert">
         <button type="button" class="gold" data-metal="g" aria-pressed="true" onclick="setConverterMetal('g')">Gold</button>
@@ -259,11 +347,11 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
       <div><label id="convertResultLabel" for="convertResult">Converted weight</label><output class="convert-result" id="convertResult" for="convertInput" aria-live="polite">--</output></div>
     </div>
     <div class="muted convert-help" id="convertHelp">Enter a value to see its conversion at the selected metal rate.</div>
-  </div>
-  <div class="card ratio-card">
-    <div class="metal-title ratio-heading"><h3>Ratio</h3><div class="holding-tile neutral" id="ratioTile"><span id="ratio">--</span></div></div>
+  </section>
+  <section class="card ratio-card" aria-labelledby="ratioHeading">
+    <div class="metal-title ratio-heading"><h2 id="ratioHeading">Ratio</h2><div class="holding-tile neutral" id="ratioTile"><span id="ratio">--</span></div></div>
     <div class="ratio-guidance neutral" id="ratioGuidance" aria-live="polite">Load rates to see relative performance.</div>
-  </div>
+  </section>
   <section class="card sip-calculator-card" aria-labelledby="sipCalculatorHeading">
     <h2 id="sipCalculatorHeading">SIP Calculator</h2>
     <div class="muted" id="sipCalculatorDescription">Estimate the future value of monthly investments.</div>
@@ -297,8 +385,8 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
     </div>
     <div class="muted sip-calculator-message" id="sipCalculatorMessage">For illustration only. Actual returns may vary.</div>
   </section>
-  <div class="card history-card">
-    <div class="history-heading"><h2>Price History</h2></div>
+  <section class="card history-card" aria-labelledby="historyHeading">
+    <div class="history-heading"><h2 id="historyHeading">Price History</h2></div>
     <div class="tabs" style="margin-top:8px" id="metalTabs" role="group" aria-label="Select price history metal"></div>
     <div class="muted history-note" id="histNote" aria-live="polite" hidden></div>
     <div class="history-table-wrap" id="historyTableWrap" hidden>
@@ -310,8 +398,26 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
         <tbody id="historyTableBody"></tbody>
       </table>
     </div>
-  </div>
+  </section>
 </div>
+<section class="card faq" aria-labelledby="faqHeading">
+  <h2 id="faqHeading">Frequently asked questions</h2>
+  <div class="faq-list">
+    <article class="faq-item">
+      <h3>How does the SIP calculator work?</h3>
+      <p>Enter an investment amount, an expected annual return, and a time period to see an illustrative future-value estimate for a monthly SIP or a one-time investment. Actual returns may vary.</p>
+    </article>
+    <article class="faq-item">
+      <h3>Where do the gold and silver rates come from?</h3>
+      <p>When live data is available, the app fetches gold and silver rates for Trichy from Goodreturns through its Netlify function. If the live request fails, the function can return fallback rates instead.</p>
+    </article>
+    <article class="faq-item">
+      <h3>Where is my portfolio data stored?</h3>
+      <p>Portfolio holdings and preferences are saved in this browser's local storage. The app sends rate requests to its Netlify function; it does not send saved portfolio data with those requests.</p>
+    </article>
+  </div>
+</section>
+</main>
 
 <footer>For information only, not financial advice. · Created by <a href="https://www.linkedin.com/in/hasanazeerkhan/" target="_blank" rel="noopener noreferrer">Hasan</a></footer>
 </div>
@@ -824,11 +930,23 @@ function calculateSip() {
 /* ===== HISTORY TABLE ===== */
 function getHistory() {
   const sourceHistory = rates ? rates.hist : historyCache;
-  if (!sourceHistory.length) return null;
+  const historyByDate = new Map(sourceHistory.map(point => [point.date, point]));
+  if (rates && Number.isFinite(rates.g24) && rates.g24 > 0 &&
+      Number.isFinite(rates.s) && rates.s > 0) {
+    const dateParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(rates.ts);
+    const date = `${dateParts.find(part => part.type === 'year').value}-${dateParts.find(part => part.type === 'month').value}-${dateParts.find(part => part.type === 'day').value}`;
+    historyByDate.set(date, { date, gold: rates.g24, silver: rates.s });
+  }
+  if (!historyByDate.size) return null;
   const cutoff = new Date();
   cutoff.setUTCDate(cutoff.getUTCDate() - 7);
   const cutoffDate = cutoff.toISOString().slice(0, 10);
-  return sourceHistory.filter(h => h.date >= cutoffDate).map(h => {
+  return [...historyByDate.values()].filter(h => h.date >= cutoffDate).sort((a, b) => a.date.localeCompare(b.date)).map(h => {
     const goldTotals = metalTotals('gold'), silverTotals = metalTotals('silver');
     const portfolio = goldTotals.grams * h.gold + silverTotals.grams * h.silver + sipSum();
     return {

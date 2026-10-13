@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0E2A2B"/>
+  <rect x="145" y="225" width="48" height="180" rx="12" fill="#AEB9C7"/>
+  <rect x="217" y="165" width="48" height="240" rx="12" fill="#80D4B7"/>
+  <rect x="289" y="105" width="48" height="300" rx="12" fill="#D5A943"/>
+  <text x="400" y="285" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="112" font-weight="700" letter-spacing="-3">Holdwise</text>
+  <text x="406" y="365" fill="#D5A943" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="500">Gold, Silver &amp; SIP Tracker</text>
+</svg>

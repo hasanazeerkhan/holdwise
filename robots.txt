@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://holdwise.netlify.app/sitemap.xml
