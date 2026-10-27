@@ -1,5 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { calculateGoldSilverRatio, classifyGoldSilverRatio } = require('../../ratio');
 
 const SOURCE_BASE = 'https://www.goodreturns.in';
 const GOLD_URL = `${SOURCE_BASE}/gold-rates/trichy.html`;
@@ -42,10 +43,8 @@ const normalizePerGram = (rawPrice, referencePerGram) => {
 };
 
 const buildRatio = (goldPrice, silverPrice) => {
-    if (!(goldPrice > 0) || !(silverPrice > 0)) {
-        return { current: '0.00', deviation: '0.0' };
-    }
-    const current = goldPrice / silverPrice;
+    const current = calculateGoldSilverRatio(goldPrice, silverPrice);
+    if (current === null) return { current: null, deviation: null };
     const deviation = ((current - RATIO_BASELINE) / RATIO_BASELINE) * 100;
     return {
         current: current.toFixed(2),
@@ -54,24 +53,10 @@ const buildRatio = (goldPrice, silverPrice) => {
 };
 
 const buildStrategy = (ratioValue) => {
-    if (ratioValue < 60) {
-        return {
-            advice: 'BUY GOLD',
-            explanation: 'Gold looks cheaper now. You can buy slowly.'
-        };
-    }
-
-    if (ratioValue > 80) {
-        return {
-            advice: 'BUY SILVER',
-            explanation: 'Silver looks cheaper now. You can buy slowly.'
-        };
-    }
-
-    return {
-        advice: 'BALANCED',
-        explanation: 'Prices look balanced now. Hold or buy both slowly.'
-    };
+    const classification = classifyGoldSilverRatio(ratioValue);
+    return classification
+        ? { advice: classification.action, explanation: classification.explanation }
+        : { advice: 'UNAVAILABLE', explanation: 'Current metal prices do not support a reliable ratio.' };
 };
 
 const normalizeDate = (raw) => {
@@ -154,7 +139,7 @@ const buildHistory = (goldHistory, silverHistory) => {
 
 const buildPayload = (gold, silver, source, history = [], historyIsExact = false, error = null) => {
     const ratio = buildRatio(gold.price, silver.price);
-    const numericRatio = Number.parseFloat(ratio.current) || 0;
+    const numericRatio = calculateGoldSilverRatio(gold.price, silver.price);
     const strategy = buildStrategy(numericRatio);
     const now = new Date();
 

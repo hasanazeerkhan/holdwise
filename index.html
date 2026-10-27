@@ -30,6 +30,7 @@
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="ratio.js"></script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -149,7 +150,7 @@ button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .history-diff.neutral{color:#5f6d7b}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px}
 .grid>.card>.metal-title{margin-bottom:12px}
-.utility-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"convert sip-calculator history" "ratio sip-calculator history";gap:16px;margin-top:16px;align-items:stretch}
+.utility-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"ratio sip-calculator history" "convert sip-calculator history";gap:16px;margin-top:16px;align-items:stretch}
 .utility-grid>.card{min-width:0}
 .convert-card{grid-area:convert}
 .ratio-card{grid-area:ratio}
@@ -163,6 +164,7 @@ button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .holding-tile.gold{color:#805b00;background:#fff8e5}
 .holding-tile.silver{color:#475467;background:#f0f2f5}
 .holding-tile.sip{color:#176357;background:#e8f4f1}
+.holding-tile.neutral{color:var(--mute);background:#f0f2f5}
 .muted{color:var(--mute);font-size:13px}
 label{display:block;font-size:13px;color:var(--mute);margin:12px 0 4px}
 input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink)}
@@ -188,13 +190,28 @@ input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-rad
 .convert-fields input{height:46px;font-variant-numeric:tabular-nums}
 .convert-result{display:flex;min-height:46px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#f6f8fa;color:var(--ink);font:700 15px/1.3 'Bricolage Grotesque',sans-serif;font-variant-numeric:tabular-nums}
 .convert-help{margin-top:8px;font-size:12px}
-.ratio-heading h3{font:700 19px/1.3 'Bricolage Grotesque',sans-serif;margin:0}
-.ratio-heading{margin-bottom:10px}
-.holding-tile.neutral{color:var(--mute);background:#f0f2f5}
-.ratio-guidance{font-size:13px;line-height:1.45}
-.ratio-guidance.gold{color:#805b00}
-.ratio-guidance.silver{color:#475467}
-.ratio-guidance.hold,.ratio-guidance.neutral{color:var(--mute)}
+.ratio-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.ratio-heading h2{margin:0;font-size:19px;line-height:1.2;letter-spacing:normal;text-transform:none}
+.ratio-badges{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0}
+.ratio-status{white-space:normal;text-align:center}
+.ratio-value-tile{color:var(--ink);background:#f0f2f5;font-variant-numeric:tabular-nums}
+.ratio-scale-wrap{position:relative;margin-top:10px;padding:5px 3px}
+.ratio-scale{display:grid;grid-template-columns:2fr 1fr 2fr;gap:2px;height:12px;padding:2px;border:1px solid var(--line);border-radius:999px;background:#f6f8fa}
+.ratio-scale-segment{height:100%;border-radius:0}
+.ratio-scale-segment.gold{background:var(--up);border-radius:999px 0 0 999px}
+.ratio-scale-segment.hold{background:var(--gold)}
+.ratio-scale-segment.silver{background:var(--silver);border-radius:0 999px 999px 0}
+.ratio-scale-labels{display:grid;grid-template-columns:2fr 1fr 2fr;gap:2px;margin:5px 3px 0;color:var(--mute);font-size:11px;line-height:1.25;white-space:nowrap}
+.ratio-scale-labels>.zone-label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;min-width:0;font-size:11px;font-weight:500}
+.ratio-scale-labels>.zone-label:nth-child(2){display:flex;justify-content:center;color:var(--gold-text);font-weight:700}
+.ratio-scale-labels>.zone-label:first-child{color:var(--up)}
+.ratio-scale-labels>.zone-label:last-child{color:var(--silver-text)}
+.ratio-scale-labels .zone-label strong{min-width:0;text-align:center;font-weight:700}
+.ratio-scale-labels .zone-label b{font-size:11px;font-weight:500}
+.ratio-recommendation{display:grid;gap:5px;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);font-size:13px;line-height:1.4}
+.ratio-recommendation h3{margin:0;color:var(--ink);font:700 15px/1.3 'Bricolage Grotesque',sans-serif}
+.ratio-recommendation p{margin:0;color:var(--mute)}
+.ratio-recommendation p strong{color:var(--ink)}
 .sip-calculator-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .sip-calculator-fields label{margin:0 0 5px;font-weight:700}
 .sip-calculator-fields input{height:42px;font-variant-numeric:tabular-nums}
@@ -227,7 +244,7 @@ td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left} th{co
 .tag{font-size:12px;background:#eef1f4;border-radius:6px;padding:2px 8px;color:var(--mute)}
 footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
 @media(min-width:761px) and (max-width:980px){
-  .utility-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"convert sip-calculator" "ratio sip-calculator" "history history"}
+  .utility-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"ratio sip-calculator" "convert sip-calculator" "history history"}
 }
 @media(max-width:760px){
   .wrap{padding:16px 12px 36px}
@@ -250,7 +267,7 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
   .convert-options{gap:8px}
   .convert-switch button{padding:5px 4px;font-size:12px}
   .grid,.utility-grid{grid-template-columns:minmax(0,1fr);gap:12px}
-  .utility-grid{grid-template-areas:"convert" "sip-calculator" "ratio" "history"}
+  .utility-grid{grid-template-areas:"ratio" "convert" "sip-calculator" "history"}
   .card{padding:16px}
   .utility-grid{margin-top:16px}
   .chartbox{height:230px}
@@ -349,8 +366,21 @@ footer{margin-top:30px;color:var(--mute);font-size:13px;text-align:center}
     <div class="muted convert-help" id="convertHelp">Enter a value to see its conversion at the selected metal rate.</div>
   </section>
   <section class="card ratio-card" aria-labelledby="ratioHeading">
-    <div class="metal-title ratio-heading"><h2 id="ratioHeading">Ratio</h2><div class="holding-tile neutral" id="ratioTile"><span id="ratio">--</span></div></div>
-    <div class="ratio-guidance neutral" id="ratioGuidance" aria-live="polite">Load rates to see relative performance.</div>
+    <div class="ratio-heading"><h2 id="ratioHeading">Gold Silver Ratio</h2><div class="ratio-badges"><span class="holding-tile neutral ratio-status" id="ratioStatus" role="status" aria-live="polite">Unavailable</span><span class="holding-tile ratio-value-tile" id="ratioValueTile" aria-label="Current gold silver ratio">--</span></div></div>
+    <div class="ratio-scale-wrap">
+      <div class="ratio-scale" id="ratioScale" role="img" aria-label="Ratio visualization unavailable.">
+        <span class="ratio-scale-segment gold"></span><span class="ratio-scale-segment hold"></span><span class="ratio-scale-segment silver"></span>
+      </div>
+    </div>
+    <div class="ratio-scale-labels" aria-hidden="true">
+      <span class="zone-label"><b id="ratioScaleMin">0</b><strong>Buy Gold</strong><b id="ratioGoldRange">60</b></span>
+      <span class="zone-label"><strong>Hold</strong></span>
+      <span class="zone-label"><b id="ratioHoldRange">80</b><strong>Buy Silver</strong><b id="ratioSilverRange">120+</b></span>
+    </div>
+    <div class="ratio-recommendation" id="ratioRecommendation" aria-live="polite">
+      <h3 id="ratioAction">Suggested action</h3>
+      <p><span id="ratioExplanation">Ratio unavailable. Refresh prices to try again.</span></p>
+    </div>
   </section>
   <section class="card sip-calculator-card" aria-labelledby="sipCalculatorHeading">
     <h2 id="sipCalculatorHeading">SIP Calculator</h2>
@@ -627,6 +657,12 @@ async function loadRates() {
     historyCache = mergeHistory(historyCache, d.history || d.history7 || []);
     const updatedAt = d.asOfIso ? new Date(d.asOfIso) : new Date();
     if (Number.isNaN(updatedAt.getTime())) throw new Error('Rate source returned an invalid update time.');
+    if (HoldwiseRatio.calculateGoldSilverRatio(d.gold?.price, d.silver?.price) === null) {
+      throw new Error('Rate source returned invalid gold or silver prices.');
+    }
+    if (!HoldwiseRatio.isRateTimestampFresh(updatedAt)) {
+      throw new Error(`Rate source returned prices more than ${HoldwiseRatio.CONFIG.maxRateAgeMs / 3600000} hours old.`);
+    }
     rates = { g24: d.gold.price, g24prev: d.gold.prevClose, s: d.silver.price, sprev: d.silver.prevClose, hist: historyCache, ts: updatedAt };
     rateLoadState = 'loaded';
     savePortfolio();
@@ -698,23 +734,34 @@ function render() {
   $('convertInput').placeholder = converterMode === 'amount' ? 'e.g. 10,000' : 'e.g. 1';
   $('convertResultLabel').textContent = converterMode === 'amount' ? 'Converted weight' : 'Converted amount';
   convert();
-  const r = live ? gram24() / sp : 0;
-  $('ratio').textContent = live ? r.toFixed(1) : '--';
-  const ratioGuidance = $('ratioGuidance');
-  const ratioState = !live ? 'neutral' : r < 50 ? 'gold' : r > 80 ? 'silver' : 'hold';
-  $('ratioTile').className = 'holding-tile ' + (ratioState === 'hold' ? 'neutral' : ratioState);
-  if (!live) {
-    ratioGuidance.textContent = 'Load rates to see what the ratio suggests.';
-    ratioGuidance.className = 'ratio-guidance neutral';
-  } else if (r < 50) {
-    ratioGuidance.textContent = 'Below 50, gold is relatively cheaper than silver. Consider gold. This is a relative-value signal, not a guarantee.';
-    ratioGuidance.className = 'ratio-guidance gold';
-  } else if (r > 80) {
-    ratioGuidance.textContent = 'Above 80, gold is relatively expensive compared with silver. Consider silver. This is a relative-value signal, not a guarantee.';
-    ratioGuidance.className = 'ratio-guidance silver';
+  const ratioValue = live ? HoldwiseRatio.calculateGoldSilverRatio(gp, sp) : null;
+  const ratioFresh = live && HoldwiseRatio.isRateTimestampFresh(rates.ts);
+  const ratioModel = rateLoadState === 'loaded' && ratioFresh
+    ? HoldwiseRatio.classifyGoldSilverRatio(ratioValue)
+    : null;
+  const ratioStatus = $('ratioStatus');
+  const { thresholds, scaleMin, scaleMax } = HoldwiseRatio.CONFIG;
+  const { goldZoneBelow, holdThrough } = thresholds;
+  const ratioText = ratioModel ? ratioValue.toFixed(2) : '--';
+  $('ratioValueTile').textContent = ratioText;
+  $('ratioValueTile').setAttribute('aria-label', ratioModel ? `Current gold silver ratio ${ratioText}` : 'Current gold silver ratio unavailable');
+  $('ratioScaleMin').textContent = scaleMin;
+  $('ratioGoldRange').textContent = goldZoneBelow;
+  $('ratioHoldRange').textContent = holdThrough;
+  $('ratioSilverRange').textContent = `${scaleMax}+`;
+  $('ratioScale').style.gridTemplateColumns =
+    '2fr 1fr 2fr';
+  ratioStatus.textContent = ratioModel ? ratioModel.status : 'Unavailable';
+  ratioStatus.className = 'holding-tile ratio-status ' + (ratioModel ? ratioModel.badgeClass : 'neutral');
+  if (ratioModel) {
+    $('ratioScale').setAttribute('aria-label', `Current ratio ${ratioText}. ${ratioModel.status}.`);
+    $('ratioAction').textContent = 'Suggested action';
+    $('ratioExplanation').textContent = ratioModel.explanation.replace('{ratio}', ratioText);
   } else {
-    ratioGuidance.textContent = 'Between 50 and 80, neither metal stands out by this ratio. Consider holding or weighing other factors.';
-    ratioGuidance.className = 'ratio-guidance hold';
+    const unavailableMessage = 'Ratio unavailable. Refresh prices to try again.';
+    $('ratioScale').setAttribute('aria-label', `Ratio unavailable. The scale ranges from ${scaleMin} to ${scaleMax}.`);
+    $('ratioAction').textContent = 'Suggested action';
+    $('ratioExplanation').textContent = unavailableMessage;
   }
   const goldTotals = metalTotals('gold'), silverTotals = metalTotals('silver');
   const gV = goldTotals.grams * gp, sV = silverTotals.grams * sp;
@@ -993,7 +1040,22 @@ function drawHistory() {
   const rows = data.slice().sort((a, b) => b.date.localeCompare(a.date));
   $('historyTableBody').innerHTML = rows.map((row, index) => {
     const previous = index < rows.length - 1 ? rows[index + 1] : null;
-    const diffValue = previous ? row[config.valueKey] - previous[config.valueKey] : null;
+    const adjacent = previous || (index > 0 ? rows[index - 1] : null);
+    let previousValue = adjacent ? adjacent[config.valueKey] : null;
+    if (previousValue === null && index === 0 && rates) {
+      const previousGold = Number.isFinite(rates.g24prev) && rates.g24prev > 0 ? rates.g24prev : null;
+      const previousSilver = Number.isFinite(rates.sprev) && rates.sprev > 0 ? rates.sprev : null;
+      previousValue = config.valueKey === 'gold24'
+        ? previousGold
+        : config.valueKey === 'gold22'
+          ? previousGold === null ? null : previousGold * 22 / 24
+          : config.valueKey === 'silver'
+            ? previousSilver
+            : previousGold === null || previousSilver === null
+              ? null
+              : metalTotals('gold').grams * previousGold + metalTotals('silver').grams * previousSilver + sipSum();
+    }
+    const diffValue = previousValue === null ? null : row[config.valueKey] - previousValue;
     const diffClass = diffValue === null ? 'neutral' : diffValue > 0 ? 'up' : diffValue < 0 ? 'down' : 'neutral';
     const diffText = diffValue === null
       ? '—'
