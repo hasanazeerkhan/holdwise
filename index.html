@@ -553,7 +553,8 @@ function restorePortfolio() {
         s: cached.s,
         sprev: cached.sprev,
         hist: historyCache,
-        ts: updatedAt
+        ts: updatedAt,
+        source: cached.source === 'fallback' ? 'fallback' : 'live'
       };
     }
     if (!currentData || saved.version < 5) savePortfolio();
@@ -577,7 +578,8 @@ function savePortfolio() {
           g24prev: rates.g24prev,
           s: rates.s,
           sprev: rates.sprev,
-          ts: rates.ts.toISOString()
+          ts: rates.ts.toISOString(),
+          source: rates.source
         }
       } : {})
     }));
@@ -652,26 +654,43 @@ async function scrapeInBrowser() {
 async function loadRates() {
   let d;
   try {
-    try { const r = await fetch('/.netlify/functions/rates'); if (!r.ok) throw 0; d = await r.json(); if (d.source !== 'live') throw 0; }
-    catch (_) { d = await scrapeInBrowser(); }
+    if (location.protocol === 'file:') {
+      const scraped = await scrapeInBrowser();
+      d = { ...scraped, source: 'live', asOfIso: new Date().toISOString() };
+    } else {
+      const response = await fetch('/.netlify/functions/rates');
+      if (!response.ok) throw new Error(`Rates endpoint returned HTTP ${response.status}.`);
+      d = await response.json();
+    }
+    if (d.source !== 'live' && d.source !== 'fallback') {
+      throw new Error('Rate source returned an unsupported response.');
+    }
     historyCache = mergeHistory(historyCache, d.history || d.history7 || []);
     const updatedAt = d.asOfIso ? new Date(d.asOfIso) : new Date();
     if (Number.isNaN(updatedAt.getTime())) throw new Error('Rate source returned an invalid update time.');
     if (HoldwiseRatio.calculateGoldSilverRatio(d.gold?.price, d.silver?.price) === null) {
       throw new Error('Rate source returned invalid gold or silver prices.');
     }
-    if (!HoldwiseRatio.isRateTimestampFresh(updatedAt)) {
+    if (d.source === 'live' && !HoldwiseRatio.isRateTimestampFresh(updatedAt)) {
       throw new Error(`Rate source returned prices more than ${HoldwiseRatio.CONFIG.maxRateAgeMs / 3600000} hours old.`);
     }
-    rates = { g24: d.gold.price, g24prev: d.gold.prevClose, s: d.silver.price, sprev: d.silver.prevClose, hist: historyCache, ts: updatedAt };
-    rateLoadState = 'loaded';
+    rates = { g24: d.gold.price, g24prev: d.gold.prevClose, s: d.silver.price, sprev: d.silver.prevClose, hist: historyCache, ts: updatedAt, source: d.source };
+    rateLoadState = d.source === 'fallback' ? 'fallback' : 'loaded';
     savePortfolio();
-    if (!storageNotice) $('banner').style.display = 'none';
+    if (d.source === 'fallback') {
+      $('banner').style.display = 'block';
+      $('banner').textContent = (storageNotice ? storageNotice + ' ' : '') +
+        'Live rates are temporarily unavailable. Showing fallback estimates; values may not reflect current market prices.';
+    } else if (!storageNotice) {
+      $('banner').style.display = 'none';
+    }
   } catch (e) {
     rateLoadState = 'error';
     $('banner').style.display = 'block';
     $('banner').textContent = storageNotice + (storageNotice ? ' ' : '') +
-      (rates ? 'Could not refresh rates. Showing the last successful rates from ' + rates.ts.toLocaleTimeString() + '. '
+      (rates ? rates.source === 'fallback'
+        ? 'Could not refresh rates. Still showing fallback estimates; values may not reflect current market prices. '
+        : 'Could not refresh rates. Showing the last successful rates from ' + rates.ts.toLocaleTimeString() + '. '
         : 'Could not load rates. ') + '(' + (e.message || 'network error') + ')';
   }
   render(); drawHistory();
@@ -694,18 +713,19 @@ function changeFromHistory(metal, currentPrice) {
 /* ===== MAIN RENDER ===== */
 function render() {
   const live = !!rates;
+  const fallbackRates = live && rates.source === 'fallback';
   $('dot').className = 'dot' + (live && rateLoadState === 'loaded' ? '' : ' off');
   $('statusTxt').className = 'status-full' + (rateLoadState === 'error' ? ' status-failed' : '');
   $('statusTxt').textContent = rateLoadState === 'loading'
-    ? live ? 'Refreshing · Last rates from ' + rates.ts.toLocaleTimeString() : 'Loading rates…'
+    ? live ? fallbackRates ? 'Refreshing · Using fallback estimates' : 'Refreshing · Last rates from ' + rates.ts.toLocaleTimeString() : 'Loading rates…'
     : rateLoadState === 'error'
-      ? live ? 'Refresh failed · Rates from ' + rates.ts.toLocaleTimeString() : 'Rates unavailable'
-      : live ? 'Live · Updated at ' + rates.ts.toLocaleTimeString() : 'Rates unavailable';
+      ? live ? fallbackRates ? 'Refresh failed · Using fallback estimates' : 'Refresh failed · Rates from ' + rates.ts.toLocaleTimeString() : 'Rates unavailable'
+      : live ? fallbackRates ? 'Fallback estimates' : 'Live · Updated at ' + rates.ts.toLocaleTimeString() : 'Rates unavailable';
   $('statusShort').textContent = rateLoadState === 'loading'
-    ? live ? 'Stale' : 'Loading'
+    ? live ? fallbackRates ? 'Estimates' : 'Stale' : 'Loading'
     : rateLoadState === 'error'
-      ? live ? 'Stale' : 'Offline'
-      : live ? 'Live · ' + rates.ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Offline';
+      ? live ? fallbackRates ? 'Estimates' : 'Stale' : 'Offline'
+      : live ? fallbackRates ? 'Estimates' : 'Live · ' + rates.ts.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Offline';
   $('statusShort').title = $('statusTxt').textContent;
 
   const gp = gramGold(), sp = gramSilver();
@@ -735,7 +755,7 @@ function render() {
   $('convertResultLabel').textContent = converterMode === 'amount' ? 'Converted weight' : 'Converted amount';
   convert();
   const ratioValue = live ? HoldwiseRatio.calculateGoldSilverRatio(gp, sp) : null;
-  const ratioFresh = live && HoldwiseRatio.isRateTimestampFresh(rates.ts);
+  const ratioFresh = live && !fallbackRates && HoldwiseRatio.isRateTimestampFresh(rates.ts);
   const ratioModel = rateLoadState === 'loaded' && ratioFresh
     ? HoldwiseRatio.classifyGoldSilverRatio(ratioValue)
     : null;
