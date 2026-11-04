@@ -653,13 +653,16 @@ async function scrapeInBrowser() {
 }
 async function loadRates() {
   let d;
+  let serverNow = Date.now();
   try {
     if (location.protocol === 'file:') {
       const scraped = await scrapeInBrowser();
       d = { ...scraped, source: 'live', asOfIso: new Date().toISOString() };
     } else {
-      const response = await fetch('/.netlify/functions/rates');
+      const response = await fetch(`/.netlify/functions/rates?fresh=${Date.now()}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`Rates endpoint returned HTTP ${response.status}.`);
+      const responseDate = Date.parse(response.headers.get('Date') || '');
+      if (Number.isFinite(responseDate)) serverNow = responseDate + 1000;
       d = await response.json();
     }
     if (d.source !== 'live' && d.source !== 'fallback') {
@@ -671,10 +674,14 @@ async function loadRates() {
     if (HoldwiseRatio.calculateGoldSilverRatio(d.gold?.price, d.silver?.price) === null) {
       throw new Error('Rate source returned invalid gold or silver prices.');
     }
-    if (d.source === 'live' && !HoldwiseRatio.isRateTimestampFresh(updatedAt)) {
-      throw new Error(`Rate source returned prices more than ${HoldwiseRatio.CONFIG.maxRateAgeMs / 3600000} hours old.`);
+    if (d.source === 'live' && !HoldwiseRatio.isRateTimestampFresh(updatedAt, serverNow)) {
+      const age = serverNow - updatedAt.getTime();
+      const ageDescription = age < 0
+        ? 'the rate timestamp is in the future'
+        : `the response is about ${Math.round(age / 3600000)} hours old`;
+      throw new Error(`Rates are not current: ${ageDescription} (updated ${updatedAt.toLocaleString()}, server time ${new Date(serverNow).toLocaleString()}). Check your device date and time, then retry.`);
     }
-    rates = { g24: d.gold.price, g24prev: d.gold.prevClose, s: d.silver.price, sprev: d.silver.prevClose, hist: historyCache, ts: updatedAt, source: d.source };
+    rates = { g24: d.gold.price, g24prev: d.gold.prevClose, s: d.silver.price, sprev: d.silver.prevClose, hist: historyCache, ts: updatedAt, source: d.source, clockOffsetMs: serverNow - Date.now() };
     rateLoadState = d.source === 'fallback' ? 'fallback' : 'loaded';
     savePortfolio();
     if (d.source === 'fallback') {
@@ -755,7 +762,8 @@ function render() {
   $('convertResultLabel').textContent = converterMode === 'amount' ? 'Converted weight' : 'Converted amount';
   convert();
   const ratioValue = live ? HoldwiseRatio.calculateGoldSilverRatio(gp, sp) : null;
-  const ratioFresh = live && !fallbackRates && HoldwiseRatio.isRateTimestampFresh(rates.ts);
+  const ratioFresh = live && !fallbackRates &&
+    HoldwiseRatio.isRateTimestampFresh(rates.ts, Date.now() + (rates.clockOffsetMs || 0));
   const ratioModel = rateLoadState === 'loaded' && ratioFresh
     ? HoldwiseRatio.classifyGoldSilverRatio(ratioValue)
     : null;
